@@ -62,11 +62,21 @@ export async function POST(request: NextRequest) {
     const token = process.env.TWILIO_AUTH_TOKEN;
 
     if (!token) {
+      console.error('[Phone Import] ERROR: TWILIO_AUTH_TOKEN is missing!');
       return NextResponse.json(
         { error: 'Twilio token not configured. Please set TWILIO_AUTH_TOKEN in environment variables or workspace settings.' },
         { status: 500 }
       );
     }
+
+    // 🔍 DEBUG LOGS
+    console.log('[Phone Import] Starting import...');
+    console.log('[Phone Import] Phone Number:', phone_number);
+    console.log('[Phone Import] Label:', label);
+    console.log('[Phone Import] SID:', sid);
+    console.log('[Phone Import] Token (first 10 chars):', token.substring(0, 10) + '...');
+    console.log('[Phone Import] Token length:', token.length);
+    console.log('[Phone Import] Sending to ElevenLabs API...');
 
     const requestBody: any = {
       phone_number,
@@ -92,8 +102,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(requestBody),
     });
 
+    console.log('[Phone Import] ElevenLabs Response Status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('[Phone Import] ERROR Response from ElevenLabs:', errorData);
       return NextResponse.json(
         { error: 'Failed to import phone number', details: errorData },
         { status: response.status }
@@ -101,9 +114,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('[Phone Import] SUCCESS! Phone number imported:', data);
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error importing phone number:', error);
+    console.error('[Phone Import] Exception error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
