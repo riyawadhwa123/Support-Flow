@@ -72,7 +72,9 @@ export default function ConversationDetailPage() {
   const loadConversation = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/conversations/${conversationId}`);
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        credentials: 'include',
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch conversation');
       }
@@ -103,7 +105,9 @@ export default function ConversationDetailPage() {
 
   const loadAudio = async () => {
     try {
-      const response = await fetch(`/api/conversations/${conversationId}/audio`);
+      const response = await fetch(`/api/conversations/${conversationId}/audio`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);

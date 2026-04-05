@@ -88,7 +88,9 @@ export default function ConversationsPage() {
         }
       }
       
-      const response = await fetch(`/api/conversations?${queryParams.toString()}`);
+      const response = await fetch(`/api/conversations?${queryParams.toString()}`, {
+        credentials: 'include',
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch conversations');
       }

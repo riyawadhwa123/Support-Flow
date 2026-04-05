@@ -40,7 +40,9 @@ export default function DashboardPage() {
       setError(null);
       
       console.log('Fetching dashboard stats...');
-      const response = await fetch('/api/stats?days=30');
+      const response = await fetch('/api/stats?days=30', {
+        credentials: 'include',
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
