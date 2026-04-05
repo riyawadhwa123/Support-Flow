@@ -81,7 +81,9 @@ export default function PhoneNumbersPage() {
 
   const loadPhoneNumbers = async () => {
     try {
-      const response = await fetch('/api/phone-numbers');
+      const response = await fetch('/api/phone-numbers', {
+        credentials: 'include',
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch phone numbers');
       }
@@ -114,6 +116,7 @@ export default function PhoneNumbersPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           phone_number: fullPhoneNumber,
           label,
@@ -158,6 +161,7 @@ export default function PhoneNumbersPage() {
     try {
       const response = await fetch(`/api/phone-numbers/${phoneNumberId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       const data = await response.json();
