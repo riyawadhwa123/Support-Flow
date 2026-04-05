@@ -174,10 +174,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License.
 
-## Support
 
-For support, email anmolx.work@gmail.com or open an issue in the repository.
-
-=======
-# Support-Flow
->>>>>>> b12477b3ba2daf717b026ad9dfd5bd45eeb30d18
