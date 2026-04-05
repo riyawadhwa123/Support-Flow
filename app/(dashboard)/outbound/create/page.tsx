@@ -15,6 +15,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Upload, Download, Grid3x3, Loader2, Phone } from 'lucide-react';
 import Link from 'next/link';
+import { Switch } from '@/components/ui/switch';
 import { csvFileToJSON } from '@/lib/csv-parser';
 
 interface Agent {
@@ -42,6 +43,7 @@ export default function CreateBatchCallPage() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [timing, setTiming] = useState<'immediate' | 'scheduled'>('immediate');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   
   const [agents, setAgents] = useState<Agent[]>([]);
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
@@ -49,6 +51,7 @@ export default function CreateBatchCallPage() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [fileSize, setFileSize] = useState('');
+  const [callingRecipientIndex, setCallingRecipientIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
@@ -130,10 +133,10 @@ export default function CreateBatchCallPage() {
 
   const downloadTemplate = () => {
     // Create simple CSV template
-    const csvContent = `phone_number,name,language
-+12345678901,John Doe,en
-+12345678902,Jane Smith,en
-+12345678903,Mike Johnson,de`;
+    const csvContent = `phone_number,name
++12345678901,John Doe
++12345678902,Jane Smith
++12345678903,Mike Johnson`;
 
     // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -147,6 +150,50 @@ export default function CreateBatchCallPage() {
     document.body.removeChild(link);
   };
 
+  const handleIndividualCall = async (recipientIndex: number) => {
+    if (!selectedAgent || !selectedPhone) {
+      alert('Please select an agent and phone number first');
+      return;
+    }
+
+    const recipient = recipients[recipientIndex];
+    if (!recipient || !recipient.phone_number) {
+      alert('Invalid recipient');
+      return;
+    }
+
+    try {
+      setCallingRecipientIndex(recipientIndex);
+
+      const response = await fetch('/api/individual-calls', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: recipient.phone_number,
+          agent_id: selectedAgent,
+          phone_number_id: selectedPhone,
+          name: recipient.name || `Recipient ${recipientIndex + 1}`,
+          language: recipient.language || 'en',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to initiate call');
+      }
+
+      const data = await response.json();
+      alert(`✅ Call initiated to ${recipient.phone_number}!\nCall SID: ${data.call_sid}`);
+    } catch (error: any) {
+      console.error('Error making call:', error);
+      alert(`❌ Error: ${error.message}`);
+    } finally {
+      setCallingRecipientIndex(null);
+    }
+  };
+
   const handleSubmit = async (testMode: boolean = false) => {
     if (!batchName || !selectedAgent || recipients.length === 0) {
       alert('Please fill in all required fields and upload recipients');
@@ -155,6 +202,11 @@ export default function CreateBatchCallPage() {
 
     if (!selectedPhone) {
       alert('Please select a phone number');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      alert('Please accept the batch calling Terms & Conditions');
       return;
     }
 
@@ -338,25 +390,21 @@ export default function CreateBatchCallPage() {
                     </Button>
                   </div>
                   <div className="bg-background rounded p-2 text-xs font-mono">
-                    <div className="grid grid-cols-3 gap-2 border-b pb-1 mb-1">
+                    <div className="grid grid-cols-2 gap-2 border-b pb-1 mb-1">
                       <span>name</span>
                       <span>phone_number</span>
-                      <span>language</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-muted-foreground">
+                    <div className="grid grid-cols-2 gap-2 text-muted-foreground">
                       <span>Alice</span>
                       <span>+123-1234</span>
-                      <span>en</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-muted-foreground">
+                    <div className="grid grid-cols-2 gap-2 text-muted-foreground">
                       <span>Bob</span>
                       <span>+123-1235</span>
-                      <span>es</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-muted-foreground">
+                    <div className="grid grid-cols-2 gap-2 text-muted-foreground">
                       <span>Charlie</span>
                       <span>+123-1236</span>
-                      <span>fr</span>
                     </div>
                   </div>
                 </div>
@@ -393,6 +441,18 @@ export default function CreateBatchCallPage() {
                 className="mt-2"
               />
             )}
+          </div>
+
+          {/* Terms & Conditions */}
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border">
+            <Switch
+              id="terms"
+              checked={acceptedTerms}
+              onCheckedChange={setAcceptedTerms}
+            />
+            <Label htmlFor="terms" className="cursor-pointer flex-1 m-0">
+              I accept the batch calling Terms & Conditions
+            </Label>
           </div>
 
           {/* Action Buttons */}
@@ -451,6 +511,22 @@ export default function CreateBatchCallPage() {
                             </p>
                           </div>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleIndividualCall(index)}
+                          disabled={callingRecipientIndex === index}
+                          className="whitespace-nowrap"
+                        >
+                          {callingRecipientIndex === index ? (
+                            <>
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              Calling...
+                            </>
+                          ) : (
+                            'Call Now'
+                          )}
+                        </Button>
                       </div>
                     ))}
                     {recipients.length > 10 && (

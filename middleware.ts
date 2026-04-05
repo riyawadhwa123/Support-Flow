@@ -54,9 +54,24 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  
+  try {
+    const {
+      data: { user: authUser },
+      error,
+    } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('Supabase auth error:', error);
+    } else {
+      user = authUser;
+    }
+  } catch (err) {
+    console.error('Middleware: Failed to fetch user from Supabase:', err);
+    // If we can't reach Supabase, treat user as unauthenticated
+    // This allows the app to continue loading
+  }
 
   const publicPaths = ['/', '/login', '/chat'];
   const isPublicPath = publicPaths.includes(request.nextUrl.pathname);
@@ -66,6 +81,9 @@ export async function middleware(request: NextRequest) {
   
   // Allow public access to ElevenLabs API routes (including Twilio personalization webhook)
   const isElevenLabsAPI = request.nextUrl.pathname.startsWith('/api/elevenlabs/');
+
+  // Allow public access to Twilio API routes (for incoming calls from Twilio)
+  const isTwilioAPI = request.nextUrl.pathname.startsWith('/api/twilio/');
 
   // Allow public access to chat API
   const isChatAPI = request.nextUrl.pathname.startsWith('/api/chat');
@@ -79,7 +97,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Guests can view public marketing pages and public API routes, everything else requires auth
-  if (!user && !isPublicPath && !isStripeAPI && !isElevenLabsAPI && !isChatAPI && !isHealthCheck) {
+  if (!user && !isPublicPath && !isStripeAPI && !isElevenLabsAPI && !isTwilioAPI && !isChatAPI && !isHealthCheck) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -87,6 +105,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api/twilio|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
 

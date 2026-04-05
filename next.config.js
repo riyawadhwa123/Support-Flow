@@ -9,8 +9,10 @@ const nextConfig = {
     ],
   },
   output: 'standalone',
-  // Add empty turbopack config to silence warning
-  turbopack: {},
+  // Fix turbopack root directory
+  turbopack: {
+    root: 'C:\\Users\\riyaw\\Downloads\\support-flow-feaure-v2\\support-flow-feaure-v2',
+  },
   webpack: (config, { isServer }) => {
     // Exclude server-only packages from client bundle
     if (!isServer) {
