@@ -1,9 +1,26 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe client
-// Use the API version that matches the installed Stripe SDK typings
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-11-17.clover',
+// Lazy initialize Stripe client to avoid build-time errors with placeholder keys
+let stripeInstance: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    const apiKey = process.env.STRIPE_SECRET_KEY;
+    if (!apiKey || apiKey === 'sk_test_your-secret-key-here') {
+      throw new Error('Stripe API key not configured or is a placeholder');
+    }
+    stripeInstance = new Stripe(apiKey, {
+      apiVersion: '2025-11-17.clover',
+    });
+  }
+  return stripeInstance;
+}
+
+// Create a proxy object that has proper types
+export const stripe: Stripe = new Proxy({} as Stripe, {
+  get: (target, prop) => {
+    return (getStripe() as any)[prop];
+  },
 });
 
 /**
